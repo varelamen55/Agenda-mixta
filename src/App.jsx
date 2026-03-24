@@ -53,13 +53,30 @@ function initialForm(date = getToday()) {
   };
 }
 
-function loadData() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : { items: [], completions: {} };
-  } catch {
+async function loadData() {
+  const { data: items, error: itemsError } = await supabase
+    .from("items")
+    .select("*")
+    .order("createdAt", { ascending: false });
+
+  const { data: completions, error: completionsError } = await supabase
+    .from("completions")
+    .select("*");
+
+  if (itemsError || completionsError) {
+    console.error("Error cargando datos de Supabase", itemsError || completionsError);
     return { items: [], completions: {} };
   }
+
+  const completionMap = {};
+  (completions || []).forEach((c) => {
+    completionMap[c.key] = c.value;
+  });
+
+  return {
+    items: items || [],
+    completions: completionMap,
+  };
 }
 
 function saveData(data) {
@@ -336,9 +353,9 @@ export default function AgendaMixtaReady() {
   const [showForm, setShowForm] = useState(false);
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    setDb(loadData());
-  }, []);
+useEffect(() => {
+  loadData().then((data) => setDb(data));
+}, []);
 
   useEffect(() => {
     function onResize() {
