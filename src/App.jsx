@@ -599,14 +599,17 @@ useEffect(() => {
             title={editingId ? "Editar entrada" : "Nueva entrada"}
             right={<button style={styles.secondaryButton} onClick={() => setShowForm(false)}>Cerrar</button>}
           >
-            <EntryForm
-  form={form}
-  setForm={setForm}
-  onSubmit={saveEntry}
-  onCancel={() => setShowForm(false)}
-  isEditing={!!editingId}
-  isMobile={isMobile}
-/>
+            >
+  <EntryForm
+    form={form}
+    setForm={setForm}
+    onSubmit={saveEntry}
+    onCancel={() => setShowForm(false)}
+    isEditing={!!editingId}
+    isMobile={isMobile}
+  />
+</SectionCard>
+)}
         )}
 
         <div style={styles.mainGrid(isMobile)}>
