@@ -79,10 +79,50 @@ async function loadData() {
   };
 }
 
-function saveData(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
+async function saveData(data) {
+  const itemsToSave = (data.items || []).map((item) => ({
+    id: item.id,
+    titulo: item.titulo,
+    descripcion: item.descripcion,
+    fecha: item.fecha,
+    hora: item.hora,
+    tipo: item.tipo,
+    categoria: item.categoria,
+    prioridad: item.prioridad,
+    recurrencia: item.recurrencia,
+    diasSemana: item.diasSemana || [],
+    createdAt: item.createdAt || new Date().toISOString(),
+  }));
 
+  const completionsToSave = Object.entries(data.completions || {}).map(([key, value]) => ({
+    key,
+    value,
+  }));
+
+  const { error: deleteItemsError } = await supabase.from("items").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  const { error: deleteCompletionsError } = await supabase.from("completions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+  if (deleteItemsError) {
+    console.error("Error borrando items", deleteItemsError);
+  }
+  if (deleteCompletionsError) {
+    console.error("Error borrando completions", deleteCompletionsError);
+  }
+
+  if (itemsToSave.length > 0) {
+    const { error: insertItemsError } = await supabase.from("items").insert(itemsToSave);
+    if (insertItemsError) {
+      console.error("Error guardando items", insertItemsError);
+    }
+  }
+
+  if (completionsToSave.length > 0) {
+    const { error: insertCompletionsError } = await supabase.from("completions").insert(completionsToSave);
+    if (insertCompletionsError) {
+      console.error("Error guardando completions", insertCompletionsError);
+    }
+  }
+}
 function formatDateES(dateStr, mode = "full") {
   const options =
     mode === "short"
@@ -365,9 +405,10 @@ useEffect(() => {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  useEffect(() => {
-    saveData(db);
-  }, [db]);
+useEffect(() => {
+  if (!db) return;
+  saveData(db);
+}, [db]);
 
   useEffect(() => {
     if (!showForm) {
