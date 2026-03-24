@@ -268,7 +268,7 @@ function SectionCard({ children, title, right }) {
   );
 }
 
-function EntryForm({ form, setForm, onSubmit, onCancel, isEditing }) {
+function EntryForm({ form, setForm, onSubmit, onCancel, isEditing, isMobile }) {
   function toggleWeekday(dayKey) {
     const exists = form.diasSemana.includes(dayKey);
     setForm({
@@ -599,8 +599,14 @@ useEffect(() => {
             title={editingId ? "Editar entrada" : "Nueva entrada"}
             right={<button style={styles.secondaryButton} onClick={() => setShowForm(false)}>Cerrar</button>}
           >
-            <EntryForm form={form} setForm={setForm} onSubmit={saveEntry} onCancel={() => setShowForm(false)} isEditing={!!editingId} />
-          </SectionCard>
+            <EntryForm
+  form={form}
+  setForm={setForm}
+  onSubmit={saveEntry}
+  onCancel={() => setShowForm(false)}
+  isEditing={!!editingId}
+  isMobile={isMobile}
+/>
         )}
 
         <div style={styles.mainGrid(isMobile)}>
