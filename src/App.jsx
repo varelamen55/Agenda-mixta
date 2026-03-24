@@ -1,16 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-const STORAGE_KEY = "agenda_mixta_ready_v1";
+const STORAGE_KEY = "agenda_mixta_ready_v2";
 const categories = ["general", "trabajo", "estudios", "hockey", "personal"];
-
-// Colores por categoría
-const categoryColors = {
-  general: { bg: "#e2e8f0", text: "#0f172a", soft: "#f8fafc", border: "#cbd5e1" },
-  trabajo: { bg: "#dbeafe", text: "#1e3a8a", soft: "#eff6ff", border: "#93c5fd" },
-  estudios: { bg: "#dcfce7", text: "#166534", soft: "#f0fdf4", border: "#86efac" },
-  hockey: { bg: "#fee2e2", text: "#991b1b", soft: "#fff1f2", border: "#fca5a5" },
-  personal: { bg: "#fef3c7", text: "#92400e", soft: "#fffbeb", border: "#fcd34d" },
-};
 const priorities = ["baja", "media", "alta"];
 const recurrenceOptions = [
   { value: "none", label: "Sin repetición" },
@@ -30,6 +21,14 @@ const weekDays = [
   { key: 6, label: "S" },
   { key: 0, label: "D" },
 ];
+
+const categoryColors = {
+  general: { bg: "#e2e8f0", text: "#0f172a", soft: "#f8fafc", border: "#cbd5e1" },
+  trabajo: { bg: "#dbeafe", text: "#1e3a8a", soft: "#eff6ff", border: "#93c5fd" },
+  estudios: { bg: "#dcfce7", text: "#166534", soft: "#f0fdf4", border: "#86efac" },
+  hockey: { bg: "#fee2e2", text: "#991b1b", soft: "#fff1f2", border: "#fca5a5" },
+  personal: { bg: "#fef3c7", text: "#92400e", soft: "#fffbeb", border: "#fcd34d" },
+};
 
 function getToday() {
   return new Date().toISOString().slice(0, 10);
@@ -71,6 +70,11 @@ function formatDateES(dateStr, mode = "full") {
 }
 
 function recurrenceText(item) {
+  if (item.recurrencia === "custom_weekdays") {
+    const labels = weekDays.filter((d) => (item.diasSemana || []).includes(d.key)).map((d) => d.label).join("-");
+    return labels ? `Días: ${labels}` : "Días concretos";
+  }
+
   const map = {
     none: "Única",
     daily: "Diaria",
@@ -78,9 +82,6 @@ function recurrenceText(item) {
     biweekly: "Quincenal",
     monthly: "Mensual",
     weekdays: "Lunes a viernes",
-    custom_weekdays: item.diasSemana?.length
-      ? `Días: ${weekDays.filter((d) => item.diasSemana.includes(d.key)).map((d) => d.label).join("-")}`
-      : "Días concretos",
   };
   return map[item.recurrencia] || "Única";
 }
@@ -128,7 +129,7 @@ function occursOnDate(item, targetDate) {
     return diffDays >= 0 && day >= 1 && day <= 5;
   }
   if (item.recurrencia === "custom_weekdays") {
-    return diffDays >= 0 && item.diasSemana?.includes(target.getDay());
+    return diffDays >= 0 && (item.diasSemana || []).includes(target.getDay());
   }
   return false;
 }
@@ -167,8 +168,10 @@ function downloadJson(data) {
   URL.revokeObjectURL(url);
 }
 
-function Badge({ children, soft, category }) {
-  const color = categoryColors[category] || { bg: "#e2e8f0", text: "#0f172a" };
+function Badge({ children, soft = false, category = null }) {
+  const color = category ? (categoryColors[category] || categoryColors.general) : null;
+  const background = category ? color.bg : soft ? "#eef2ff" : "#e2e8f0";
+  const textColor = category ? color.text : "#0f172a";
 
   return (
     <span
@@ -179,15 +182,10 @@ function Badge({ children, soft, category }) {
         padding: "6px 10px",
         borderRadius: 999,
         fontSize: 12,
-        background: category ? color.bg : soft ? "#eef2ff" : "#e2e8f0",
-        color: category ? color.text : "#0f172a",
+        background,
+        color: textColor,
         border: "1px solid #cbd5e1",
       }}
-    >
-      {children}
-    </span>
-  );
-}}
     >
       {children}
     </span>
@@ -445,20 +443,52 @@ export default function AgendaMixtaReady() {
     const monday = startOfWeek(selectedDate);
     const items = [
       {
-        id: crypto.randomUUID(), titulo: "Entrenamiento base", descripcion: "Pista principal - grupo escuela", fecha: monday,
-        hora: "17:30", tipo: "cita", categoria: "hockey", prioridad: "alta", recurrencia: "weekly", diasSemana: [],
+        id: crypto.randomUUID(),
+        titulo: "Entrenamiento base",
+        descripcion: "Pista principal - grupo escuela",
+        fecha: monday,
+        hora: "17:30",
+        tipo: "cita",
+        categoria: "hockey",
+        prioridad: "alta",
+        recurrencia: "weekly",
+        diasSemana: [],
       },
       {
-        id: crypto.randomUUID(), titulo: "Reunión de coordinación", descripcion: "Seguimiento con staff", fecha: monday,
-        hora: "10:00", tipo: "cita", categoria: "trabajo", prioridad: "media", recurrencia: "biweekly", diasSemana: [],
+        id: crypto.randomUUID(),
+        titulo: "Reunión de coordinación",
+        descripcion: "Seguimiento con staff",
+        fecha: monday,
+        hora: "10:00",
+        tipo: "cita",
+        categoria: "trabajo",
+        prioridad: "media",
+        recurrencia: "biweekly",
+        diasSemana: [],
       },
       {
-        id: crypto.randomUUID(), titulo: "Publicación Instagram", descripcion: "Preparar copy y foto", fecha: selectedDate,
-        hora: "20:00", tipo: "tarea", categoria: "hockey", prioridad: "media", recurrencia: "weekdays", diasSemana: [],
+        id: crypto.randomUUID(),
+        titulo: "Publicación Instagram",
+        descripcion: "Preparar copy y foto",
+        fecha: selectedDate,
+        hora: "20:00",
+        tipo: "tarea",
+        categoria: "hockey",
+        prioridad: "media",
+        recurrencia: "weekdays",
+        diasSemana: [],
       },
       {
-        id: crypto.randomUUID(), titulo: "Revisar contabilidad", descripcion: "Seguimiento semanal", fecha: monday,
-        hora: "09:00", tipo: "tarea", categoria: "trabajo", prioridad: "alta", recurrencia: "custom_weekdays", diasSemana: [1, 3, 5],
+        id: crypto.randomUUID(),
+        titulo: "Revisar contabilidad",
+        descripcion: "Seguimiento semanal",
+        fecha: monday,
+        hora: "09:00",
+        tipo: "tarea",
+        categoria: "trabajo",
+        prioridad: "alta",
+        recurrencia: "custom_weekdays",
+        diasSemana: [1, 3, 5],
       },
     ];
     setDb((prev) => ({ ...prev, items: [...items, ...prev.items] }));
@@ -493,7 +523,10 @@ export default function AgendaMixtaReady() {
         </div>
 
         {showForm && (
-          <SectionCard title={editingId ? "Editar entrada" : "Nueva entrada"} right={<button style={styles.secondaryButton} onClick={() => setShowForm(false)}>Cerrar</button>}>
+          <SectionCard
+            title={editingId ? "Editar entrada" : "Nueva entrada"}
+            right={<button style={styles.secondaryButton} onClick={() => setShowForm(false)}>Cerrar</button>}
+          >
             <EntryForm form={form} setForm={setForm} onSubmit={saveEntry} onCancel={() => setShowForm(false)} isEditing={!!editingId} />
           </SectionCard>
         )}
@@ -562,9 +595,9 @@ export default function AgendaMixtaReady() {
               title={formatDateES(selectedDate)}
               right={
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button style={styles.secondaryButton} onClick={() => viewMode === "mes" ? moveMonth(-1) : changeSelectedDate(viewMode === "semana" ? -7 : -1)}>◀</button>
+                  <button style={styles.secondaryButton} onClick={() => (viewMode === "mes" ? moveMonth(-1) : changeSelectedDate(viewMode === "semana" ? -7 : -1))}>◀</button>
                   <button style={styles.secondaryButton} onClick={() => setSelectedDate(getToday())}>Hoy</button>
-                  <button style={styles.secondaryButton} onClick={() => viewMode === "mes" ? moveMonth(1) : changeSelectedDate(viewMode === "semana" ? 7 : 1)}>▶</button>
+                  <button style={styles.secondaryButton} onClick={() => (viewMode === "mes" ? moveMonth(1) : changeSelectedDate(viewMode === "semana" ? 7 : 1))}>▶</button>
                 </div>
               }
             >
@@ -593,41 +626,44 @@ export default function AgendaMixtaReady() {
               {viewMode === "dia" && (
                 <div style={{ display: "grid", gap: 12 }}>
                   {filteredDayItems.length === 0 && <div style={styles.emptyBox}>No hay elementos para este día con los filtros actuales.</div>}
-                  {filteredDayItems.map((item) => (
-                    <div
-                      key={item.id}
-                      style={{
-                        ...styles.itemRow,
-                        opacity: item.completed ? 0.65 : 1,
-                        background: categoryColors[item.categoria]?.soft || "white",
-                        border: `1px solid ${categoryColors[item.categoria]?.border || '#e2e8f0'}`,
-                      }}
-                    >
-                      <input type="checkbox" checked={item.completed} onChange={() => toggleCompletion(item.id)} style={{ width: 18, height: 18, marginTop: 3 }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                          <div>
-                            <div style={{ fontSize: 18, fontWeight: 700, textDecoration: item.completed ? "line-through" : "none" }}>{item.titulo}</div>
-                            {item.descripcion && <div style={{ color: "#64748b", textDecoration: item.completed ? "line-through" : "none" }}>{item.descripcion}</div>}
+                  {filteredDayItems.map((item) => {
+                    const color = categoryColors[item.categoria] || categoryColors.general;
+                    return (
+                      <div
+                        key={item.id}
+                        style={{
+                          ...styles.itemRow,
+                          opacity: item.completed ? 0.65 : 1,
+                          background: color.soft,
+                          border: `1px solid ${color.border}`,
+                        }}
+                      >
+                        <input type="checkbox" checked={item.completed} onChange={() => toggleCompletion(item.id)} style={{ width: 18, height: 18, marginTop: 3 }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                            <div>
+                              <div style={{ fontSize: 18, fontWeight: 700, textDecoration: item.completed ? "line-through" : "none" }}>{item.titulo}</div>
+                              {item.descripcion && <div style={{ color: "#64748b", textDecoration: item.completed ? "line-through" : "none" }}>{item.descripcion}</div>}
+                            </div>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              <Badge>{item.tipo}</Badge>
+                              <Badge category={item.categoria}>{item.categoria}</Badge>
+                              <Badge soft>{item.prioridad}</Badge>
+                            </div>
                           </div>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            <Badge>{item.tipo}</Badge>
-                            <Badge category={item.categoria}>{item.categoria}</Badge>
-                            <Badge soft>{item.prioridad}</Badge>
+                          <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap", fontSize: 13, color: "#475569" }}>
+                            <span>Hora: {item.hora}</span>
+                            <span>Repetición: {recurrenceText(item)}</span>
+                            <span>Inicio: {formatDateES(item.fecha, "short")}</span>
                           </div>
                         </div>
-                        <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap", fontSize: 13, color: "#475569" }}>
-                          <span>Hora: {item.hora}</span>
-                          <span>Repetición: {recurrenceText(item)}</span>
-                          <span>Inicio: {formatDateES(item.fecha, "short")}</span>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <button style={styles.secondaryButton} onClick={() => editItem(item)}>Editar</button>
+                          <button style={styles.dangerButton} onClick={() => deleteItem(item.id)}>Borrar</button>
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <button style={styles.secondaryButton} onClick={() => editItem(item)}>Editar</button>
-                        <button style={styles.dangerButton} onClick={() => deleteItem(item.id)}>Borrar</button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -645,19 +681,22 @@ export default function AgendaMixtaReady() {
                         </button>
                         <div style={{ display: "grid", gap: 8 }}>
                           {items.length === 0 && <div style={{ fontSize: 12, color: "#94a3b8" }}>Sin elementos</div>}
-                          {items.slice(0, 6).map((item) => (
-                            <div
-                              key={`${item.id}-${date}`}
-                              style={{
-                                ...styles.miniItem,
-                                background: categoryColors[item.categoria]?.bg || "#f1f5f9",
-                                color: categoryColors[item.categoria]?.text || "#0f172a",
-                              }}
-                            >
-                              <div style={{ fontWeight: 700 }}>{item.hora} · {item.titulo}</div>
-                              <div style={{ color: "#64748b", fontSize: 12 }}>{item.categoria}</div>
-                            </div>
-                          ))}
+                          {items.slice(0, 6).map((item) => {
+                            const color = categoryColors[item.categoria] || categoryColors.general;
+                            return (
+                              <div
+                                key={`${item.id}-${date}`}
+                                style={{
+                                  ...styles.miniItem,
+                                  background: color.bg,
+                                  color: color.text,
+                                }}
+                              >
+                                <div style={{ fontWeight: 700 }}>{item.hora} · {item.titulo}</div>
+                                <div style={{ color: color.text, opacity: 0.8, fontSize: 12 }}>{item.categoria}</div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     );
@@ -676,7 +715,10 @@ export default function AgendaMixtaReady() {
                       return (
                         <button
                           key={cell.date}
-                          onClick={() => { setSelectedDate(cell.date); setViewMode("dia"); }}
+                          onClick={() => {
+                            setSelectedDate(cell.date);
+                            setViewMode("dia");
+                          }}
                           style={{
                             ...styles.monthCell,
                             background: cell.currentMonth ? "white" : "#f1f5f9",
@@ -689,18 +731,21 @@ export default function AgendaMixtaReady() {
                             {items.length > 0 && <Badge>{items.length}</Badge>}
                           </div>
                           <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
-                            {items.slice(0, 2).map((item) => (
-                              <div
-                              key={`${cell.date}-${item.id}`}
-                              style={{
-                                ...styles.miniItem,
-                                background: categoryColors[item.categoria]?.bg || "#f1f5f9",
-                                color: categoryColors[item.categoria]?.text || "#0f172a",
-                              }}
-                            >
-                              {item.hora} {item.titulo}
-                            </div>
-                            ))}
+                            {items.slice(0, 2).map((item) => {
+                              const color = categoryColors[item.categoria] || categoryColors.general;
+                              return (
+                                <div
+                                  key={`${cell.date}-${item.id}`}
+                                  style={{
+                                    ...styles.miniItem,
+                                    background: color.bg,
+                                    color: color.text,
+                                  }}
+                                >
+                                  {item.hora} {item.titulo}
+                                </div>
+                              );
+                            })}
                           </div>
                         </button>
                       );
@@ -750,11 +795,11 @@ const styles = {
   pendingAlert: { background: "#fff7ed", border: "1px solid #fdba74", color: "#9a3412", borderRadius: 18, padding: 14, marginBottom: 14 },
   doneAlert: { background: "#f0fdf4", border: "1px solid #86efac", color: "#166534", borderRadius: 18, padding: 14, marginBottom: 14 },
   emptyBox: { border: "1px dashed #cbd5e1", borderRadius: 20, padding: 28, textAlign: "center", color: "#64748b" },
-  itemRow: { display: "flex", gap: 14, alignItems: "flex-start", border: "1px solid #e2e8f0", borderRadius: 20, padding: 16, flexWrap: "wrap" },
+  itemRow: { display: "flex", gap: 14, alignItems: "flex-start", borderRadius: 20, padding: 16, flexWrap: "wrap" },
   weekGrid: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 12 },
   weekCell: { borderRadius: 20, padding: 12, background: "white", minHeight: 180 },
   cellHeaderBtn: { width: "100%", textAlign: "left", background: "transparent", border: 0, padding: 0, marginBottom: 10, cursor: "pointer", color: "inherit" },
-  miniItem: { background: "#f1f5f9", borderRadius: 12, padding: "8px 10px", fontSize: 12, textAlign: "left" },
+  miniItem: { borderRadius: 12, padding: "8px 10px", fontSize: 12, textAlign: "left" },
   monthHeader: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8, marginBottom: 8, textAlign: "center", fontSize: 12, color: "#64748b", fontWeight: 700, textTransform: "uppercase" },
   monthGrid: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 },
   monthCell: { minHeight: 110, borderRadius: 16, padding: 10, textAlign: "left", cursor: "pointer" },
