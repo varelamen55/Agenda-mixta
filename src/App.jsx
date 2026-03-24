@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js',
 const supabase = createClient(
   "https://lwwwjjjsslkjvkwcubiw.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3d3dqampzc2xranZrd2N1Yml3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNTQ1MzAsImV4cCI6MjA4OTkzMDUzMH0.PldijJdCAel227ptb-mb5ozngKkr_SSXd8AJCARGr74"
-)
+);
 const STORAGE_KEY = "agenda_mixta_ready_v2";
 const categories = ["general", "trabajo", "estudios", "hockey", "personal"];
 const priorities = ["baja", "media", "alta"];
