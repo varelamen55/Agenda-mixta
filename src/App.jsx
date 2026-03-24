@@ -227,7 +227,7 @@ function EntryForm({ form, setForm, onSubmit, onCancel, isEditing }) {
         <textarea style={{ ...styles.input, minHeight: 90, resize: "vertical" }} value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} />
       </label>
 
-      <div style={styles.grid2}>
+      <div style={styles.grid2(isMobile)}>
         <label style={styles.labelWrap}>
           <span style={styles.label}>Fecha de inicio</span>
           <input type="date" style={styles.input} value={form.fecha} onChange={(e) => setForm({ ...form, fecha: e.target.value })} />
@@ -238,7 +238,7 @@ function EntryForm({ form, setForm, onSubmit, onCancel, isEditing }) {
         </label>
       </div>
 
-      <div style={styles.grid3}>
+      <div style={styles.grid3(isMobile)}>
         <label style={styles.labelWrap}>
           <span style={styles.label}>Tipo</span>
           <select style={styles.input} value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}>
@@ -318,6 +318,7 @@ function Stat({ title, value, subtitle }) {
 }
 
 export default function AgendaMixtaReady() {
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
   const [db, setDb] = useState({ items: [], completions: {} });
   const [selectedDate, setSelectedDate] = useState(getToday());
   const [viewMode, setViewMode] = useState("dia");
@@ -332,6 +333,14 @@ export default function AgendaMixtaReady() {
 
   useEffect(() => {
     setDb(loadData());
+  }, []);
+
+  useEffect(() => {
+    function onResize() {
+      setIsMobile(window.innerWidth <= 768);
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   useEffect(() => {
@@ -511,11 +520,11 @@ export default function AgendaMixtaReady() {
 
   return (
     <div style={styles.page}>
-      <div style={styles.container}>
-        <h1 style={styles.mainTitle}>Agenda mixta personal</h1>
+      <div style={styles.container(isMobile)}>
+        <h1 style={styles.mainTitle(isMobile)}>Agenda mixta personal</h1>
         <p style={styles.subtitle}>Tareas, citas, recurrencias, vista diaria, semanal y mensual. Guardado automático en tu navegador.</p>
 
-        <div style={styles.statsGrid}>
+        <div style={styles.statsGrid(isMobile)}>
           <Stat title="Total hoy" value={summary.total} subtitle="Elementos programados" />
           <Stat title="Pendientes" value={summary.pending} subtitle="Todavía por hacer" />
           <Stat title="Completadas" value={summary.completed} subtitle="Marcadas para hoy" />
@@ -531,7 +540,7 @@ export default function AgendaMixtaReady() {
           </SectionCard>
         )}
 
-        <div style={styles.mainGrid}>
+        <div style={styles.mainGrid(isMobile)}>
           <div style={{ display: "grid", gap: 16 }}>
             <SectionCard title="Control" right={<button style={styles.primaryButton} onClick={() => setShowForm(true)}>Nueva entrada</button>}>
               <div style={{ display: "grid", gap: 12 }}>
@@ -549,7 +558,7 @@ export default function AgendaMixtaReady() {
                   </select>
                 </label>
 
-                <div style={styles.grid2}>
+                <div style={styles.grid2(isMobile)}>
                   <label style={styles.labelWrap}>
                     <span style={styles.label}>Estado</span>
                     <select style={styles.input} value={filterState} onChange={(e) => setFilterState(e.target.value)}>
@@ -594,10 +603,10 @@ export default function AgendaMixtaReady() {
             <SectionCard
               title={formatDateES(selectedDate)}
               right={
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button style={styles.secondaryButton} onClick={() => (viewMode === "mes" ? moveMonth(-1) : changeSelectedDate(viewMode === "semana" ? -7 : -1))}>◀</button>
-                  <button style={styles.secondaryButton} onClick={() => setSelectedDate(getToday())}>Hoy</button>
-                  <button style={styles.secondaryButton} onClick={() => (viewMode === "mes" ? moveMonth(1) : changeSelectedDate(viewMode === "semana" ? 7 : 1))}>▶</button>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "space-between" : "flex-start" }}>
+                  <button style={styles.secondaryButtonMobile(isMobile)} onClick={() => (viewMode === "mes" ? moveMonth(-1) : changeSelectedDate(viewMode === "semana" ? -7 : -1))}>◀</button>
+                  <button style={styles.secondaryButtonMobile(isMobile)} onClick={() => setSelectedDate(getToday())}>Hoy</button>
+                  <button style={styles.secondaryButtonMobile(isMobile)} onClick={() => (viewMode === "mes" ? moveMonth(1) : changeSelectedDate(viewMode === "semana" ? 7 : 1))}>▶</button>
                 </div>
               }
             >
@@ -645,7 +654,7 @@ export default function AgendaMixtaReady() {
                               <div style={{ fontSize: 18, fontWeight: 700, textDecoration: item.completed ? "line-through" : "none" }}>{item.titulo}</div>
                               {item.descripcion && <div style={{ color: "#64748b", textDecoration: item.completed ? "line-through" : "none" }}>{item.descripcion}</div>}
                             </div>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: isMobile ? 8 : 0 }}>
                               <Badge>{item.tipo}</Badge>
                               <Badge category={item.categoria}>{item.categoria}</Badge>
                               <Badge soft>{item.prioridad}</Badge>
@@ -657,9 +666,9 @@ export default function AgendaMixtaReady() {
                             <span>Inicio: {formatDateES(item.fecha, "short")}</span>
                           </div>
                         </div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <button style={styles.secondaryButton} onClick={() => editItem(item)}>Editar</button>
-                          <button style={styles.dangerButton} onClick={() => deleteItem(item.id)}>Borrar</button>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
+                          <button style={styles.actionButton(isMobile)} onClick={() => editItem(item)}>Editar</button>
+                          <button style={styles.dangerButtonMobile(isMobile)} onClick={() => deleteItem(item.id)}>Borrar</button>
                         </div>
                       </div>
                     );
@@ -668,7 +677,7 @@ export default function AgendaMixtaReady() {
               )}
 
               {viewMode === "semana" && (
-                <div style={styles.weekGrid}>
+                <div style={styles.weekGrid(isMobile)}>
                   {weekDates.map((date) => {
                     const items = getItemsForDate(date);
                     return (
@@ -706,10 +715,10 @@ export default function AgendaMixtaReady() {
 
               {viewMode === "mes" && (
                 <div>
-                  <div style={styles.monthHeader}>
+                  <div style={styles.monthHeader(isMobile)}>
                     {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((d) => <div key={d}>{d}</div>)}
                   </div>
-                  <div style={styles.monthGrid}>
+                  <div style={styles.monthGrid(isMobile)}>
                     {monthGrid.map((cell) => {
                       const items = getItemsForDate(cell.date);
                       return (
@@ -769,11 +778,11 @@ const styles = {
     color: "#0f172a",
     fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
   },
-  container: { maxWidth: 1300, margin: "0 auto", display: "grid", gap: 16 },
-  mainTitle: { margin: 0, fontSize: 36, fontWeight: 900 },
+  container: () => ({ maxWidth: 1300, margin: "0 auto", display: "grid", gap: 16 }),
+  mainTitle: (isMobile) => ({ margin: 0, fontSize: isMobile ? 28 : 36, fontWeight: 900, lineHeight: 1.1 }),
   subtitle: { margin: 0, color: "#64748b" },
-  statsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 },
-  mainGrid: { display: "grid", gridTemplateColumns: "340px 1fr", gap: 16 },
+  statsGrid: (isMobile) => ({ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }),
+  mainGrid: (isMobile) => ({ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "340px 1fr", gap: 16 }),
   card: {
     background: "white",
     borderRadius: 24,
@@ -784,23 +793,26 @@ const styles = {
   cardHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" },
   labelWrap: { display: "grid", gap: 6 },
   label: { fontSize: 13, color: "#334155", fontWeight: 600 },
-  input: { border: "1px solid #cbd5e1", borderRadius: 14, padding: "12px 14px", fontSize: 14, width: "100%", boxSizing: "border-box" },
-  grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
-  grid3: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 },
-  primaryButton: { background: "#0f172a", color: "white", border: 0, borderRadius: 14, padding: "12px 16px", fontWeight: 700, cursor: "pointer" },
-  secondaryButton: { background: "white", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: 14, padding: "12px 16px", fontWeight: 700, cursor: "pointer" },
+  input: { border: "1px solid #cbd5e1", borderRadius: 14, padding: "12px 14px", fontSize: 16, width: "100%", boxSizing: "border-box" },
+  grid2: (isMobile) => ({ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }),
+  grid3: (isMobile) => ({ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12 }),
+  primaryButton: { background: "#0f172a", color: "white", border: 0, borderRadius: 14, padding: "14px 16px", fontWeight: 700, cursor: "pointer", minHeight: 48 },
+  secondaryButton: { background: "white", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: 14, padding: "12px 16px", fontWeight: 700, cursor: "pointer", minHeight: 46 },
+  secondaryButtonMobile: (isMobile) => ({ background: "white", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: 14, padding: "12px 16px", fontWeight: 700, cursor: "pointer", minHeight: 46, flex: isMobile ? 1 : "unset" }),
   dangerButton: { background: "#fff1f2", color: "#be123c", border: "1px solid #fecdd3", borderRadius: 14, padding: "12px 16px", fontWeight: 700, cursor: "pointer" },
-  smallButton: { border: "1px solid #cbd5e1", borderRadius: 12, padding: "8px 12px", cursor: "pointer", fontWeight: 700 },
+  actionButton: (isMobile) => ({ background: "white", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: 14, padding: "12px 16px", fontWeight: 700, cursor: "pointer", flex: isMobile ? 1 : "unset", minHeight: 46 }),
+  dangerButtonMobile: (isMobile) => ({ background: "#fff1f2", color: "#be123c", border: "1px solid #fecdd3", borderRadius: 14, padding: "12px 16px", fontWeight: 700, cursor: "pointer", flex: isMobile ? 1 : "unset", minHeight: 46 }),
+  smallButton: { border: "1px solid #cbd5e1", borderRadius: 12, padding: "10px 12px", cursor: "pointer", fontWeight: 700, minHeight: 42 },
   tipBox: { background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1e3a8a", borderRadius: 18, padding: 14, fontSize: 13 },
   pendingAlert: { background: "#fff7ed", border: "1px solid #fdba74", color: "#9a3412", borderRadius: 18, padding: 14, marginBottom: 14 },
   doneAlert: { background: "#f0fdf4", border: "1px solid #86efac", color: "#166534", borderRadius: 18, padding: 14, marginBottom: 14 },
   emptyBox: { border: "1px dashed #cbd5e1", borderRadius: 20, padding: 28, textAlign: "center", color: "#64748b" },
   itemRow: { display: "flex", gap: 14, alignItems: "flex-start", borderRadius: 20, padding: 16, flexWrap: "wrap" },
-  weekGrid: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 12 },
+  weekGrid: (isMobile) => ({ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(7, 1fr)", gap: 12 }),
   weekCell: { borderRadius: 20, padding: 12, background: "white", minHeight: 180 },
   cellHeaderBtn: { width: "100%", textAlign: "left", background: "transparent", border: 0, padding: 0, marginBottom: 10, cursor: "pointer", color: "inherit" },
   miniItem: { borderRadius: 12, padding: "8px 10px", fontSize: 12, textAlign: "left" },
-  monthHeader: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8, marginBottom: 8, textAlign: "center", fontSize: 12, color: "#64748b", fontWeight: 700, textTransform: "uppercase" },
-  monthGrid: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 },
+  monthHeader: (isMobile) => ({ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 8, textAlign: "center", fontSize: isMobile ? 10 : 12, color: "#64748b", fontWeight: 700, textTransform: "uppercase" }),
+  monthGrid: (isMobile) => ({ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: isMobile ? 4 : 8 }),
   monthCell: { minHeight: 110, borderRadius: 16, padding: 10, textAlign: "left", cursor: "pointer" },
 };
