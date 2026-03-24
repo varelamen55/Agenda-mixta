@@ -2,6 +2,15 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 
 const STORAGE_KEY = "agenda_mixta_ready_v1";
 const categories = ["general", "trabajo", "estudios", "hockey", "personal"];
+
+// Colores por categoría
+const categoryColors = {
+  general: { bg: "#e2e8f0", text: "#0f172a", soft: "#f8fafc", border: "#cbd5e1" },
+  trabajo: { bg: "#dbeafe", text: "#1e3a8a", soft: "#eff6ff", border: "#93c5fd" },
+  estudios: { bg: "#dcfce7", text: "#166534", soft: "#f0fdf4", border: "#86efac" },
+  hockey: { bg: "#fee2e2", text: "#991b1b", soft: "#fff1f2", border: "#fca5a5" },
+  personal: { bg: "#fef3c7", text: "#92400e", soft: "#fffbeb", border: "#fcd34d" },
+};
 const priorities = ["baja", "media", "alta"];
 const recurrenceOptions = [
   { value: "none", label: "Sin repetición" },
@@ -158,7 +167,9 @@ function downloadJson(data) {
   URL.revokeObjectURL(url);
 }
 
-function Badge({ children, soft }) {
+function Badge({ children, soft, category }) {
+  const color = categoryColors[category] || { bg: "#e2e8f0", text: "#0f172a" };
+
   return (
     <span
       style={{
@@ -168,10 +179,15 @@ function Badge({ children, soft }) {
         padding: "6px 10px",
         borderRadius: 999,
         fontSize: 12,
-        background: soft ? "#eef2ff" : "#e2e8f0",
-        color: "#0f172a",
+        background: category ? color.bg : soft ? "#eef2ff" : "#e2e8f0",
+        color: category ? color.text : "#0f172a",
         border: "1px solid #cbd5e1",
       }}
+    >
+      {children}
+    </span>
+  );
+}}
     >
       {children}
     </span>
@@ -558,11 +574,35 @@ export default function AgendaMixtaReady() {
                 <Badge soft>Hechas: {summary.completed}</Badge>
               </div>
 
+              {summary.pending > 0 && viewMode === "dia" && (
+                <div style={styles.pendingAlert}>
+                  <div style={{ fontWeight: 800, marginBottom: 4 }}>Tienes cosas pendientes hoy</div>
+                  <div style={{ fontSize: 14 }}>
+                    Te quedan <strong>{summary.pending}</strong> {summary.pending === 1 ? "elemento pendiente" : "elementos pendientes"} para completar en esta fecha.
+                  </div>
+                </div>
+              )}
+
+              {summary.pending === 0 && summary.total > 0 && viewMode === "dia" && (
+                <div style={styles.doneAlert}>
+                  <div style={{ fontWeight: 800, marginBottom: 4 }}>Todo al día</div>
+                  <div style={{ fontSize: 14 }}>Has completado todos los elementos de esta fecha.</div>
+                </div>
+              )}
+
               {viewMode === "dia" && (
                 <div style={{ display: "grid", gap: 12 }}>
                   {filteredDayItems.length === 0 && <div style={styles.emptyBox}>No hay elementos para este día con los filtros actuales.</div>}
                   {filteredDayItems.map((item) => (
-                    <div key={item.id} style={{ ...styles.itemRow, opacity: item.completed ? 0.65 : 1 }}>
+                    <div
+                      key={item.id}
+                      style={{
+                        ...styles.itemRow,
+                        opacity: item.completed ? 0.65 : 1,
+                        background: categoryColors[item.categoria]?.soft || "white",
+                        border: `1px solid ${categoryColors[item.categoria]?.border || '#e2e8f0'}`,
+                      }}
+                    >
                       <input type="checkbox" checked={item.completed} onChange={() => toggleCompletion(item.id)} style={{ width: 18, height: 18, marginTop: 3 }} />
                       <div style={{ flex: 1 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
@@ -572,7 +612,7 @@ export default function AgendaMixtaReady() {
                           </div>
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                             <Badge>{item.tipo}</Badge>
-                            <Badge soft>{item.categoria}</Badge>
+                            <Badge category={item.categoria}>{item.categoria}</Badge>
                             <Badge soft>{item.prioridad}</Badge>
                           </div>
                         </div>
@@ -606,7 +646,14 @@ export default function AgendaMixtaReady() {
                         <div style={{ display: "grid", gap: 8 }}>
                           {items.length === 0 && <div style={{ fontSize: 12, color: "#94a3b8" }}>Sin elementos</div>}
                           {items.slice(0, 6).map((item) => (
-                            <div key={`${item.id}-${date}`} style={styles.miniItem}>
+                            <div
+                              key={`${item.id}-${date}`}
+                              style={{
+                                ...styles.miniItem,
+                                background: categoryColors[item.categoria]?.bg || "#f1f5f9",
+                                color: categoryColors[item.categoria]?.text || "#0f172a",
+                              }}
+                            >
                               <div style={{ fontWeight: 700 }}>{item.hora} · {item.titulo}</div>
                               <div style={{ color: "#64748b", fontSize: 12 }}>{item.categoria}</div>
                             </div>
@@ -643,7 +690,16 @@ export default function AgendaMixtaReady() {
                           </div>
                           <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
                             {items.slice(0, 2).map((item) => (
-                              <div key={`${cell.date}-${item.id}`} style={styles.miniItem}>{item.hora} {item.titulo}</div>
+                              <div
+                              key={`${cell.date}-${item.id}`}
+                              style={{
+                                ...styles.miniItem,
+                                background: categoryColors[item.categoria]?.bg || "#f1f5f9",
+                                color: categoryColors[item.categoria]?.text || "#0f172a",
+                              }}
+                            >
+                              {item.hora} {item.titulo}
+                            </div>
                             ))}
                           </div>
                         </button>
@@ -691,6 +747,8 @@ const styles = {
   dangerButton: { background: "#fff1f2", color: "#be123c", border: "1px solid #fecdd3", borderRadius: 14, padding: "12px 16px", fontWeight: 700, cursor: "pointer" },
   smallButton: { border: "1px solid #cbd5e1", borderRadius: 12, padding: "8px 12px", cursor: "pointer", fontWeight: 700 },
   tipBox: { background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1e3a8a", borderRadius: 18, padding: 14, fontSize: 13 },
+  pendingAlert: { background: "#fff7ed", border: "1px solid #fdba74", color: "#9a3412", borderRadius: 18, padding: 14, marginBottom: 14 },
+  doneAlert: { background: "#f0fdf4", border: "1px solid #86efac", color: "#166534", borderRadius: 18, padding: 14, marginBottom: 14 },
   emptyBox: { border: "1px dashed #cbd5e1", borderRadius: 20, padding: 28, textAlign: "center", color: "#64748b" },
   itemRow: { display: "flex", gap: 14, alignItems: "flex-start", border: "1px solid #e2e8f0", borderRadius: 20, padding: 16, flexWrap: "wrap" },
   weekGrid: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 12 },
@@ -699,5 +757,5 @@ const styles = {
   miniItem: { background: "#f1f5f9", borderRadius: 12, padding: "8px 10px", fontSize: 12, textAlign: "left" },
   monthHeader: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8, marginBottom: 8, textAlign: "center", fontSize: 12, color: "#64748b", fontWeight: 700, textTransform: "uppercase" },
   monthGrid: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 },
-  monthCell: { minHeight: 110, borderRadius: 16, padding: 10, textAlign: "left", cursor: "pointer", border: '1px solid #dbe2ea' },
+  monthCell: { minHeight: 110, borderRadius: 16, padding: 10, textAlign: "left", cursor: "pointer" },
 };
